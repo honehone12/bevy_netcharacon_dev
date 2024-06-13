@@ -4,14 +4,21 @@ use bevy_replicon::prelude::*;
 use network_character_controller::NetworkYaw;
 use crate::{
     *,
-    network_character_controller::NetworkCharacterController
+    level::*,
+    network_character_controller::*
 };
 
 pub struct GameServerPlugin;
 
 impl Plugin for GameServerPlugin {
     fn build(&self, app: &mut App) {
-        app.add_systems(PreUpdate, 
+        app.add_systems(Startup, (
+            server_setup_floor,
+            server_setup_dynamic_box,
+            server_setup_kinematic_box,
+            server_setup_cc_box
+        ))
+        .add_systems(PreUpdate, 
             handle_server_event
             .after(ServerSet::Receive)
         )
