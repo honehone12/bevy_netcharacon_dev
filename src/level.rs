@@ -6,7 +6,7 @@ pub const FLOOR_COLOR: Color = Color::rgb(0.5, 0.5, 0.5);
 pub const FLOOR_POSITION: Vec3 = Vec3::new(0.0, -0.5, 0.0);
 pub const LIGHT_POSITION: Vec3 = Vec3::new(0.0, 50.0, 0.0);
 pub const LIGHT_ROTATION_X: f32 = -std::f32::consts::PI / 4.0;
-pub const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 70.0, 25.0);
+pub const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 50.0, 25.0);
 
 pub fn client_setup_floor(
     mut commands: Commands,
