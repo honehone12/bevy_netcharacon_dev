@@ -14,9 +14,7 @@ impl Plugin for GameServerPlugin {
     fn build(&self, app: &mut App) {
         app.add_systems(Startup, (
             server_setup_floor,
-            server_setup_dynamic_box,
-            server_setup_kinematic_box,
-            server_setup_cc_box
+            server_setup_box
         ))
         .add_systems(PreUpdate, 
             handle_server_event

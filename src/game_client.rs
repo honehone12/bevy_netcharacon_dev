@@ -27,9 +27,7 @@ impl Plugin for GameClientPlugin {
             setup_light,
             setup_fixed_camera,
             client_setup_floor,
-            client_setup_dynamic_box,
-            client_setup_kinematic_box,
-            client_setup_cc_box
+            client_setup_box
         ))
         .add_systems(PreUpdate, (
             monitor_connection_system,

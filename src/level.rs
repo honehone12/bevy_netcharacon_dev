@@ -10,9 +10,11 @@ pub const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 50.0, 25.0);
 
 pub const BOX_SIZE: Vec3 = Vec3::new(5.0, 5.0, 5.0);
 pub const BOX_COLOR: Color = Color::BLUE;
-pub const DYN_BOX_POSITION: Vec3 = Vec3::new(5.0, 2.5, 5.0);
-pub const KIN_BOX_POSITION: Vec3 = Vec3::new(-5.0, 2.5, 5.0);
-pub const CC_BOX_POSITION: Vec3 = Vec3::new(5.0, 2.5, -5.0);
+pub const BOX_POSITION_1: Vec3 = Vec3::new(5.0, 2.5, 5.0);
+pub const BOX_POSITION_2: Vec3 = Vec3::new(-5.0, 2.5, 5.0);
+pub const BOX_POSITION_3: Vec3 = Vec3::new(5.0, 2.5, -5.0);
+pub const BOX_POSITION_4: Vec3 = Vec3::new(-5.0, 2.5, -5.0);
+
 
 pub fn client_setup_floor(
     mut commands: Commands,
@@ -72,7 +74,7 @@ pub fn box_collider() -> Collider {
     Collider::cuboid(extents.x, extents.y, extents.z)
 }
 
-pub fn client_setup_dynamic_box(
+pub fn client_setup_box(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<StandardMaterial>>
@@ -81,74 +83,63 @@ pub fn client_setup_dynamic_box(
         PbrBundle{
             mesh: meshes.add(Mesh::from(Cuboid::from_size(BOX_SIZE))),
             material: materials.add(BOX_COLOR),
-            transform: Transform::from_translation(DYN_BOX_POSITION),
+            transform: Transform::from_translation(BOX_POSITION_1),
             ..default()
         },
-        RigidBody::Dynamic,
         box_collider()
     ));
-}
-
-pub fn server_setup_dynamic_box(mut commands: Commands) {
-    commands.spawn((
-        TransformBundle::from_transform(
-            Transform::from_translation(DYN_BOX_POSITION)
-        ),
-        RigidBody::Dynamic,
-        box_collider()
-    ));
-}
-
-pub fn client_setup_kinematic_box(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
-) {
     commands.spawn((
         PbrBundle{
             mesh: meshes.add(Mesh::from(Cuboid::from_size(BOX_SIZE))),
             material: materials.add(BOX_COLOR),
-            transform: Transform::from_translation(KIN_BOX_POSITION),
+            transform: Transform::from_translation(BOX_POSITION_2),
             ..default()
         },
-        RigidBody::KinematicPositionBased,
         box_collider()
     ));
-}
-
-pub fn server_setup_kinematic_box(mut commands: Commands) {
-    commands.spawn((
-        TransformBundle::from_transform(
-            Transform::from_translation(KIN_BOX_POSITION)
-        ),
-        RigidBody::KinematicPositionBased,
-        box_collider()
-    ));
-}
-
-pub fn client_setup_cc_box(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<StandardMaterial>>
-) {
     commands.spawn((
         PbrBundle{
             mesh: meshes.add(Mesh::from(Cuboid::from_size(BOX_SIZE))),
             material: materials.add(BOX_COLOR),
-            transform: Transform::from_translation(CC_BOX_POSITION),
+            transform: Transform::from_translation(BOX_POSITION_3),
             ..default()
         },
-        KinematicCharacterController::default(),
+        box_collider()
+    ));
+    commands.spawn((
+        PbrBundle{
+            mesh: meshes.add(Mesh::from(Cuboid::from_size(BOX_SIZE))),
+            material: materials.add(BOX_COLOR),
+            transform: Transform::from_translation(BOX_POSITION_4),
+            ..default()
+        },
         box_collider()
     ));
 }
 
-pub fn server_setup_cc_box(mut commands: Commands) {
+pub fn server_setup_box(mut commands: Commands) {
     commands.spawn((
         TransformBundle::from_transform(
-            Transform::from_translation(CC_BOX_POSITION)
+            Transform::from_translation(BOX_POSITION_1)
         ),
-        KinematicCharacterController::default(),
+        box_collider()
+    ));
+    commands.spawn((
+        TransformBundle::from_transform(
+            Transform::from_translation(BOX_POSITION_2)
+        ),
+        box_collider()
+    ));
+    commands.spawn((
+        TransformBundle::from_transform(
+            Transform::from_translation(BOX_POSITION_3)
+        ),
+        box_collider()
+    ));
+    commands.spawn((
+        TransformBundle::from_transform(
+            Transform::from_translation(BOX_POSITION_4)
+        ),
         box_collider()
     ));
 }
