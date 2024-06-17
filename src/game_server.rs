@@ -1,7 +1,3 @@
-use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
-use bevy_replicon::prelude::*;
-use network_character_controller::NetworkYaw;
 use crate::{
     *,
     level::*,
@@ -22,7 +18,7 @@ impl Plugin for GameServerPlugin {
         )
         .add_systems(FixedUpdate, 
             handle_action
-            .before(BEFORE_PHYSICS_SET)
+            .in_set(TnuaUserControlsSystemSet)
         )
         .add_systems(PostUpdate, 
             handle_character_controller_output
@@ -44,14 +40,21 @@ fn handle_server_event(
                     TransformBundle::from_transform(
                         Transform::from_translation(CHARACTER_SPAWN_POSITION)
                     ),
-                    RigidBody::KinematicPositionBased,
+                    RigidBody::Dynamic,
                     Collider::capsule_y(CHARACTER_HALF_HIGHT, CHARACTER_RADIUS),
-                    KinematicCharacterController::default(),
+                    TnuaControllerBundle::default(),
+                    TnuaRapier3dIOBundle::default(),
+                    TnuaRapier3dSensorShape(
+                        Collider::cylinder(0.0, CHARACTER_RADIUS - CHARACTER_OFFSET)
+                    ),
+                    LockedAxes::from(
+                        LockedAxes::ROTATION_LOCKED_X 
+                        | LockedAxes::ROTATION_LOCKED_Z
+                    ),
                     NetworkCharacterController{
                         translation: CHARACTER_SPAWN_POSITION,
                         ..default()
-                    },
-                    NetworkYaw::default()
+                    }
                 ));
 
                 info!("client: {client_id:?} connected");
@@ -66,22 +69,14 @@ fn handle_server_event(
 fn handle_action(
     mut query: Query<(
         &NetworkId,
-        &mut KinematicCharacterController,
-        &mut Transform
+        &mut TnuaController,
     )>,
     mut actions: EventReader<FromClient<NetworkAction>>,
-    time: Res<Time<Fixed>>
 ) {
-    for (_, mut cc, _) in query.iter_mut() {
-        if let Some(_) = cc.translation {
-            cc.translation = None;
-        }
-    }
-
     for FromClient { client_id, event } in actions.read() {
-        for (net_id, mut cc, mut transform) in query.iter_mut() {
-            if net_id.client_id() == *client_id {
-                update_character(&mut cc, &mut transform, event, &time);
+        for (net_id, mut cc) in query.iter_mut() {
+            if *client_id == net_id.client_id() {
+                update_character(&mut cc, event);
             }
         }
     }
@@ -89,18 +84,15 @@ fn handle_action(
 
 fn handle_character_controller_output(
     mut query: Query<(
-        &KinematicCharacterControllerOutput,
         &Transform,
-        &mut NetworkCharacterController,
-        &mut NetworkYaw
+        &mut NetworkCharacterController
     )>
 ) {
-    for (out, transform, mut net_cc, mut net_yaw) in query.iter_mut() {
+    for (transform, mut net_cc) in query.iter_mut() {
         let trans = transform.translation;
         let yaw = quat_to_yaw(transform.rotation);
 
         net_cc.translation = trans;
-        net_cc.grounded = out.grounded;
-        net_yaw.yaw = yaw;
+        net_cc.yaw = yaw;
     }
 }

@@ -1,15 +1,10 @@
-use bevy::{
-    prelude::*,
-    input::mouse::MouseMotion 
-};
-use bevy_rapier3d::prelude::*;
-use bevy_replicon::prelude::*;
-use network_character_controller::*;
+use bevy::input::mouse::MouseMotion;
 use crate::{
     *,
     instant_event::*, 
     level::*,
-    client_builder::Client
+    client_builder::Client,
+    network_character_controller::*,
 };
 
 const FORWARD: KeyCode = KeyCode::KeyW;
@@ -39,7 +34,7 @@ impl Plugin for GameClientPlugin {
             handle_input,
             handle_action
         ).chain(
-        ).before(BEFORE_PHYSICS_SET));
+        ).in_set(TnuaUserControlsSystemSet));
     }
 }
 
@@ -57,8 +52,7 @@ fn handle_player_spawn(
     query: Query<(
         Entity, 
         &NetworkId,
-        &NetworkCharacterController,
-        &NetworkYaw
+        &NetworkCharacterController
     ), 
         Added<NetworkId>
     >,
@@ -66,7 +60,7 @@ fn handle_player_spawn(
     mut materials: ResMut<Assets<StandardMaterial>>,
     client: Res<Client>
 ) {
-    for (e, net_id, net_cc, net_yaw) in query.iter() {
+    for (e, net_id, net_cc) in query.iter() {
         commands.entity(e)
         .insert((
             PbrBundle{
@@ -76,18 +70,31 @@ fn handle_player_spawn(
                 material: materials.add(CHARACTER_COLOR),
                 transform: Transform{
                     translation: net_cc.translation,
-                    rotation: yaw_to_quat(net_yaw.yaw),
+                    rotation: yaw_to_quat(net_cc.yaw),
                     ..default()
                 },
                 ..default()
             },
-            RigidBody::KinematicPositionBased,
             Collider::capsule_y(CHARACTER_HALF_HIGHT, CHARACTER_RADIUS)
         ));
 
         if client.id() == net_id.client_id().get() {
             commands.entity(e)
-            .insert(KinematicCharacterController::default());
+            .insert((
+                RigidBody::Dynamic,
+                TnuaControllerBundle::default(),
+                TnuaRapier3dIOBundle::default(),
+                TnuaRapier3dSensorShape(
+                    Collider::cylinder(0.0, CHARACTER_RADIUS - CHARACTER_OFFSET)
+                ),
+                LockedAxes::from(
+                    LockedAxes::ROTATION_LOCKED_X
+                    | LockedAxes::ROTATION_LOCKED_Z
+                )
+            ));
+        } else {
+            commands.entity(e)
+            .insert(RigidBody::KinematicPositionBased);
         }
 
         info!("player: {:?} spawned", net_id.client_id())
@@ -119,45 +126,40 @@ fn handle_input(
         action.angular += e.delta;
     }
 
-    if action.linear != Vec2::ZERO || action.angular != Vec2::ZERO {
-        actions.enqueue(action.clone());
-        net_actions.send(action);
-    }
+    actions.enqueue(action.clone());
+    net_actions.send(action);
 }
 
 fn handle_action(
-    mut query: Query<(
-        &mut KinematicCharacterController,
-        &mut Transform
-    ), With<NetworkCharacterController>>,
+    mut query: Query<&mut TnuaController, With<NetworkCharacterController>>,
     mut actions: ResMut<InstantEvent<NetworkAction>>,
-    time: Res<Time<Fixed>>,
 ) {
-    for (mut cc, _) in query.iter_mut() {
-        if let Some(_) = cc.translation {
-            cc.translation = None;
-        }
-    }
+    let Ok(mut cc) = query.get_single_mut() else {
+        return;
+    };
 
     for a in actions.drain() {
-        for (mut cc, mut transform) in query.iter_mut() {
-            update_character(&mut cc, &mut transform, &a, &time);
-        }
+        update_character(&mut cc, &a);
     }
 }
 
 fn draw_net_cc_gizmos_system(
-    query: Query<(
-        &NetworkCharacterController,
-        &NetworkYaw
-    )>,
+    query: Query<(&NetworkCharacterController, &Transform)>,
     mut gizmos: Gizmos
 ) {
-    for (net_cc, net_yaw) in query.iter() {
+    for (net_cc, transform) in query.iter() {
         gizmos.cuboid(Transform{
             translation: net_cc.translation,
-            rotation: yaw_to_quat(net_yaw.yaw),
+            rotation: yaw_to_quat(net_cc.yaw),
             ..default()
         }, Color::GREEN);
+
+        info!(
+            "CC translation: {} : CC rotation: {}, TF translation: {} : TF rotation: {}", 
+            net_cc.translation, 
+            net_cc.yaw,
+            transform.translation,
+            transform.rotation
+        );
     }
 }

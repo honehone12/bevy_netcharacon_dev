@@ -28,6 +28,7 @@ pub fn client_setup_floor(
             transform: Transform::from_translation(FLOOR_POSITION),
             ..default()
         },
+        RigidBody::Fixed,
         floor_collider()
     ));
 }
@@ -37,6 +38,7 @@ pub fn server_setup_floor(mut commands: Commands) {
         TransformBundle::from_transform(
             Transform::from_translation(FLOOR_POSITION)
         ),
+        RigidBody::Fixed,
         floor_collider()
     ));
 }
@@ -86,6 +88,7 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_1),
             ..default()
         },
+        RigidBody::Fixed,
         box_collider()
     ));
     commands.spawn((
@@ -95,6 +98,7 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_2),
             ..default()
         },
+        RigidBody::Fixed,
         box_collider()
     ));
     commands.spawn((
@@ -104,6 +108,7 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_3),
             ..default()
         },
+        RigidBody::Fixed,
         box_collider()
     ));
     commands.spawn((
@@ -113,6 +118,7 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_4),
             ..default()
         },
+        RigidBody::Fixed,
         box_collider()
     ));
 }

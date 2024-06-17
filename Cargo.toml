@@ -17,6 +17,8 @@ codegen-units = 1
 [dependencies]
 anyhow = "1.0.86"
 bevy = "0.13.2"
+bevy-tnua = "0.18.0"
+bevy-tnua-rapier3d = "0.6.0"
 bevy_rapier3d = { version = "0.26.0", default-features = false, features = ["dim3", "debug-render-3d"] }
 bevy_replicon = "0.26.3"
 bevy_replicon_renet = "0.3.0"
