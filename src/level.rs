@@ -41,9 +41,12 @@ pub fn server_setup_floor(mut commands: Commands) {
     ));
 }
 
-pub fn floor_collider() -> Collider {
+pub fn floor_collider() -> impl Bundle {
     let extents = FLOOR_SIZE * 0.5;
-    Collider::cuboid(extents.x, extents.y, extents.z)
+    (
+        Collider::cuboid(extents.x, extents.y, extents.z),
+        RigidBody::Fixed
+    )
 }
 
 pub fn setup_light(mut commands: Commands) {
@@ -69,9 +72,12 @@ pub fn setup_fixed_camera(mut commands: Commands) {
     });
 }
 
-pub fn box_collider() -> Collider {
+pub fn box_collider() -> impl Bundle {
     let extents = BOX_SIZE * 0.5;
-    Collider::cuboid(extents.x, extents.y, extents.z)
+    (
+        Collider::cuboid(extents.x, extents.y, extents.z),
+        RigidBody::Fixed
+    )
 }
 
 pub fn client_setup_box(
