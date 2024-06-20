@@ -1,7 +1,8 @@
 use bevy::input::mouse::MouseMotion;
 use crate::{
     *,
-    instant_event::*, 
+    character_controller::*,
+    instant_event_buffer::*, 
     level::*,
     client_builder::Client,
     network_character_controller::*,
@@ -11,13 +12,13 @@ const FORWARD: KeyCode = KeyCode::KeyW;
 const LEFT: KeyCode = KeyCode::KeyA;
 const BACK: KeyCode = KeyCode::KeyS;
 const RIGHT: KeyCode = KeyCode::KeyD;
+const JUMP: KeyCode = KeyCode::Space;
 
 pub struct GameClientPlugin;
 
 impl Plugin for GameClientPlugin {
     fn build(&self, app: &mut App) {
-        app.insert_resource(InstantEvent::<NetworkAction>::new())
-        .add_plugins(RapierDebugRenderPlugin::default())
+        app.add_plugins(PhysicsDebugPlugin::default())
         .add_systems(Startup, (
             setup_light,
             setup_fixed_camera,
@@ -34,7 +35,7 @@ impl Plugin for GameClientPlugin {
             handle_input,
             handle_action
         ).chain(
-        ).in_set(TnuaUserControlsSystemSet));
+        ).before(BEFORE_PHYSICS_SET));
     }
 }
 
@@ -62,10 +63,10 @@ fn handle_player_spawn(
 ) {
     for (e, net_id, net_cc) in query.iter() {
         commands.entity(e)
-        .insert((
+        .insert(
             PbrBundle{
                 mesh: meshes.add(Mesh::from(
-                    Capsule3d::new(CHARACTER_RADIUS, CHARACTER_HALF_HIGHT * 2.0))
+                    Capsule3d::new(CHARACTER_RADIUS, CHARACTER_HIGHT * 0.5))
                 ),
                 material: materials.add(CHARACTER_COLOR),
                 transform: Transform{
@@ -74,27 +75,25 @@ fn handle_player_spawn(
                     ..default()
                 },
                 ..default()
-            },
-            Collider::capsule_y(CHARACTER_HALF_HIGHT, CHARACTER_RADIUS)
-        ));
+            }
+        );
 
         if client.id() == net_id.client_id().get() {
             commands.entity(e)
             .insert((
-                RigidBody::Dynamic,
-                TnuaControllerBundle::default(),
-                TnuaRapier3dIOBundle::default(),
-                TnuaRapier3dSensorShape(
-                    Collider::cylinder(0.0, CHARACTER_RADIUS - CHARACTER_OFFSET)
-                ),
-                LockedAxes::from(
-                    LockedAxes::ROTATION_LOCKED_X
-                    | LockedAxes::ROTATION_LOCKED_Z
+                InstantEventBuffer::<NetworkAction>::new(),
+                LockedAxes::new().lock_rotation_x().lock_rotation_z(),
+                CharacterControllerBundle::new(
+                    Collider::capsule(CHARACTER_HIGHT, CHARACTER_RADIUS),
+                    GRAVITY
                 )
             ));
         } else {
             commands.entity(e)
-            .insert(RigidBody::KinematicPositionBased);
+            .insert((
+                RigidBody::Kinematic,
+                Collider::capsule(CHARACTER_HIGHT, CHARACTER_RADIUS)
+            ));
         }
 
         info!("player: {:?} spawned", net_id.client_id())
@@ -102,11 +101,15 @@ fn handle_player_spawn(
 }
 
 fn handle_input(
+    mut query: Query<&mut InstantEventBuffer<NetworkAction>>, 
     keyboard: Res<ButtonInput<KeyCode>>,
     mut mouse: EventReader<MouseMotion>,
-    mut net_actions: EventWriter<NetworkAction>,
-    mut actions: ResMut<InstantEvent<NetworkAction>>
+    mut net_actions: EventWriter<NetworkAction>
 ) {
+    let Ok(ref mut actions) = query.get_single_mut() else {
+        return;
+    };
+
     let mut action = NetworkAction::default();
 
     if keyboard.pressed(FORWARD) {
@@ -121,45 +124,56 @@ fn handle_input(
     if keyboard.pressed(LEFT) {
         action.linear.x -= 1.0;
     }
-    
+    if keyboard.just_pressed(JUMP) {
+        action.jump = true;
+    }
+
     for e in mouse.read() {
         action.angular += e.delta;
     }
 
-    actions.enqueue(action.clone());
+    actions.send(action.clone());
     net_actions.send(action);
 }
 
 fn handle_action(
-    mut query: Query<&mut TnuaController, With<NetworkCharacterController>>,
-    mut actions: ResMut<InstantEvent<NetworkAction>>,
+    mut query: Query<(
+        &mut InstantEventBuffer<NetworkAction>,
+        &mut InstantEventBuffer<ControllerAction>
+    )>
 ) {
-    let Ok(mut cc) = query.get_single_mut() else {
+    let Ok((
+        ref mut actions, 
+        ref mut controls
+    )) = query.get_single_mut() else {
         return;
     };
 
-    for a in actions.drain() {
-        update_character(&mut cc, &a);
+    for a in actions.read() {
+        if a.linear != Vec2::ZERO {
+            controls.send(ControllerAction::Move(a.linear.normalize()));
+        }
+        if a.jump {
+            controls.send(ControllerAction::Jump);
+        }
     }
 }
 
 fn draw_net_cc_gizmos_system(
-    query: Query<(&NetworkCharacterController, &Transform)>,
+    query: Query<&NetworkCharacterController>,
     mut gizmos: Gizmos
 ) {
-    for (net_cc, transform) in query.iter() {
+    for net_cc in query.iter() {
         gizmos.cuboid(Transform{
             translation: net_cc.translation,
             rotation: yaw_to_quat(net_cc.yaw),
             ..default()
         }, Color::GREEN);
 
-        info!(
-            "CC translation: {} : CC rotation: {}, TF translation: {} : TF rotation: {}", 
-            net_cc.translation, 
-            net_cc.yaw,
-            transform.translation,
-            transform.rotation
-        );
+        // info!(
+        //     "trans: {} : rot: {}", 
+        //     net_cc.translation, 
+        //     net_cc.yaw,
+        // );
     }
 }

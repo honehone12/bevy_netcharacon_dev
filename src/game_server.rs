@@ -1,7 +1,11 @@
+use character_controller::CharacterControllerBundle;
+use instant_event_buffer::InstantEventBuffer;
+
 use crate::{
     *,
     level::*,
-    network_character_controller::*
+    network_character_controller::*,
+    character_controller::*
 };
 
 pub struct GameServerPlugin;
@@ -18,7 +22,7 @@ impl Plugin for GameServerPlugin {
         )
         .add_systems(FixedUpdate, 
             handle_action
-            .in_set(TnuaUserControlsSystemSet)
+            .before(BEFORE_PHYSICS_SET)
         )
         .add_systems(PostUpdate, 
             handle_character_controller_output
@@ -40,16 +44,10 @@ fn handle_server_event(
                     TransformBundle::from_transform(
                         Transform::from_translation(CHARACTER_SPAWN_POSITION)
                     ),
-                    RigidBody::Dynamic,
-                    Collider::capsule_y(CHARACTER_HALF_HIGHT, CHARACTER_RADIUS),
-                    TnuaControllerBundle::default(),
-                    TnuaRapier3dIOBundle::default(),
-                    TnuaRapier3dSensorShape(
-                        Collider::cylinder(0.0, CHARACTER_RADIUS - CHARACTER_OFFSET)
-                    ),
-                    LockedAxes::from(
-                        LockedAxes::ROTATION_LOCKED_X 
-                        | LockedAxes::ROTATION_LOCKED_Z
+                    LockedAxes::new().lock_rotation_x().lock_rotation_z(),
+                    CharacterControllerBundle::new(
+                        Collider::capsule(CHARACTER_HIGHT, CHARACTER_RADIUS),
+                        GRAVITY
                     ),
                     NetworkCharacterController{
                         translation: CHARACTER_SPAWN_POSITION,
@@ -69,14 +67,19 @@ fn handle_server_event(
 fn handle_action(
     mut query: Query<(
         &NetworkId,
-        &mut TnuaController,
+        &mut InstantEventBuffer<ControllerAction>
     )>,
     mut actions: EventReader<FromClient<NetworkAction>>,
 ) {
-    for FromClient { client_id, event } in actions.read() {
-        for (net_id, mut cc) in query.iter_mut() {
+    for FromClient { client_id, event: action } in actions.read() {
+        for (net_id, mut controls) in query.iter_mut() {
             if *client_id == net_id.client_id() {
-                update_character(&mut cc, event);
+                if action.linear != Vec2::ZERO {
+                    controls.send(ControllerAction::Move(action.linear.normalize()));
+                }
+                if action.jump {
+                    controls.send(ControllerAction::Jump);
+                }
             }
         }
     }

@@ -1,12 +1,12 @@
 use bevy::prelude::*;
-use bevy_rapier3d::prelude::*;
+use bevy_xpbd_3d::prelude::*;
 
 pub const FLOOR_SIZE: Vec3 = Vec3::new(100.0, 1.0, 100.0);
 pub const FLOOR_COLOR: Color = Color::rgb(0.5, 0.5, 0.5);
 pub const FLOOR_POSITION: Vec3 = Vec3::new(0.0, -0.5, 0.0);
 pub const LIGHT_POSITION: Vec3 = Vec3::new(0.0, 50.0, 0.0);
 pub const LIGHT_ROTATION_X: f32 = -std::f32::consts::PI / 4.0;
-pub const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 50.0, 25.0);
+pub const CAMERA_POSITION: Vec3 = Vec3::new(0.0, 25.0, 25.0);
 
 pub const BOX_SIZE: Vec3 = Vec3::new(5.0, 5.0, 5.0);
 pub const BOX_COLOR: Color = Color::BLUE;
@@ -28,7 +28,6 @@ pub fn client_setup_floor(
             transform: Transform::from_translation(FLOOR_POSITION),
             ..default()
         },
-        RigidBody::Fixed,
         floor_collider()
     ));
 }
@@ -38,14 +37,15 @@ pub fn server_setup_floor(mut commands: Commands) {
         TransformBundle::from_transform(
             Transform::from_translation(FLOOR_POSITION)
         ),
-        RigidBody::Fixed,
         floor_collider()
     ));
 }
 
-pub fn floor_collider() -> Collider {
-    let extents = FLOOR_SIZE * 0.5;
-    Collider::cuboid(extents.x, extents.y, extents.z)
+pub fn floor_collider() -> impl Bundle {
+    (
+        Collider::cuboid(FLOOR_SIZE.x, FLOOR_SIZE.y, FLOOR_SIZE.z),
+        RigidBody::Static
+    )
 }
 
 pub fn setup_light(mut commands: Commands) {
@@ -71,9 +71,11 @@ pub fn setup_fixed_camera(mut commands: Commands) {
     });
 }
 
-pub fn box_collider() -> Collider {
-    let extents = BOX_SIZE * 0.5;
-    Collider::cuboid(extents.x, extents.y, extents.z)
+pub fn box_collider() -> impl Bundle {
+    (
+        Collider::cuboid(BOX_SIZE.x, BOX_SIZE.y, BOX_SIZE.z),
+        RigidBody::Static
+    )
 }
 
 pub fn client_setup_box(
@@ -88,7 +90,6 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_1),
             ..default()
         },
-        RigidBody::Fixed,
         box_collider()
     ));
     commands.spawn((
@@ -98,7 +99,6 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_2),
             ..default()
         },
-        RigidBody::Fixed,
         box_collider()
     ));
     commands.spawn((
@@ -108,7 +108,6 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_3),
             ..default()
         },
-        RigidBody::Fixed,
         box_collider()
     ));
     commands.spawn((
@@ -118,7 +117,6 @@ pub fn client_setup_box(
             transform: Transform::from_translation(BOX_POSITION_4),
             ..default()
         },
-        RigidBody::Fixed,
         box_collider()
     ));
 }
