@@ -3,7 +3,7 @@
 // server have to operate multiple character controller
 
 use bevy::prelude::*;
-use bevy_xpbd_3d::{prelude::*, SubstepSchedule, SubstepSet};
+use bevy_xpbd_3d::{prelude::*, PhysicsSchedule, SubstepSchedule, SubstepSet};
 use crate::instant_event_buffer::InstantEventBuffer;
 
 pub struct CharacterControllerPlugin;
@@ -11,13 +11,13 @@ pub struct CharacterControllerPlugin;
 impl Plugin for CharacterControllerPlugin {
     fn build(&self, app: &mut App) {
         app.add_event::<ControllerAction>()
-        .add_systems(FixedUpdate, (
+        .add_systems(SubstepSchedule, (
             control_system,
             apply_gravity_system,
             apply_movement_damping_system,
             update_grounded_system,
         ).chain(
-        ).in_set(PhysicsSet::Prepare))
+        ).before(SubstepSet::Integrate))
         .add_systems(SubstepSchedule, 
             kinematic_collisions_system
             .in_set(SubstepSet::SolveUserConstraints)
