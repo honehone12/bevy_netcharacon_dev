@@ -31,6 +31,7 @@ pub const DISTANCE_CULLING_THREASHOLD: f32 = 100.0;
 pub const PHYSICS_FIXED_TICK_RATE: f32 = 64.0;
 pub const PHYSICS_FIXED_TICK_RATE64: f64 = 64.0;
 pub const PHYSICS_FIXED_TICK_DELTA: f32 = 1.0 / PHYSICS_FIXED_TICK_RATE;
+pub const PHYSICS_SUBSTEP: f32 = 12.0; 
 
 pub fn get_dev_protocol_id() -> u64 {
     if cfg!(debug_assertions) {

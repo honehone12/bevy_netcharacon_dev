@@ -3,8 +3,8 @@
 // server have to operate multiple character controller
 
 use bevy::prelude::*;
-use bevy_xpbd_3d::{prelude::*, PhysicsSchedule, SubstepSchedule, SubstepSet};
-use crate::instant_event_buffer::InstantEventBuffer;
+use bevy_xpbd_3d::{prelude::*, SubstepSchedule, SubstepSet};
+use crate::{config::PHYSICS_SUBSTEP, instant_event_buffer::InstantEventBuffer};
 
 pub struct CharacterControllerPlugin;
 
@@ -14,13 +14,16 @@ impl Plugin for CharacterControllerPlugin {
         .add_systems(SubstepSchedule, (
             control_system,
             apply_gravity_system,
-            apply_movement_damping_system,
-            update_grounded_system,
+            apply_movement_damping_system
         ).chain(
         ).before(SubstepSet::Integrate))
         .add_systems(SubstepSchedule, 
             kinematic_collisions_system
             .in_set(SubstepSet::SolveUserConstraints)
+        )
+        .add_systems(SubstepSchedule,
+            update_grounded_system
+            .after(SubstepSet::ApplyTranslation)
         );
     }
 }
@@ -72,8 +75,8 @@ pub struct MovementBundle {
     max_slope_angle: MaxSlopeAngle
 }
 
-const DEFAULT_ACCELERATION: Acceleration = Acceleration(30.0);
-const DEFAULT_DAMPING_FACTOR: DampingFactor = DampingFactor(0.9);
+const DEFAULT_ACCELERATION: Acceleration = Acceleration(60.0 * PHYSICS_SUBSTEP);
+const DEFAULT_DAMPING_FACTOR: DampingFactor = DampingFactor(0.98);
 const DEFAULT_JUMP_IMPULSE: JumpImpulse = JumpImpulse(7.0);
 const DEFAULT_MAX_SLOPE_ANGLE: MaxSlopeAngle = MaxSlopeAngle(bevy_xpbd_3d::math::PI * 0.45);
 
@@ -172,13 +175,13 @@ fn control_system(
         &mut LinearVelocity,
         Has<Grounded>
     )>,
-    phy_time: Res<Time<Physics>>
+    time: Res<Time>
 ) {
     if query.is_empty() {
         return;
     }
 
-    let delta_time = phy_time.delta_seconds();
+    let delta_time = time.delta_seconds();
 
     for (mut controls, accel, jump, mut vel, is_grounded) in query.iter_mut() {
         for control in controls.read() {
@@ -201,13 +204,13 @@ fn control_system(
 
 fn apply_gravity_system(
     mut query: Query<(&Gravity, &mut LinearVelocity)>,
-    phy_time: Res<Time<Physics>>
+    time: Res<Time>
 ) {
     if query.is_empty() {
         return;
     }
 
-    let delta_time = phy_time.delta_seconds();
+    let delta_time = time.delta_seconds();
     
     for (gravity, mut vel) in query.iter_mut() {
         vel.0 += gravity.0 * delta_time;

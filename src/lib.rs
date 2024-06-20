@@ -61,7 +61,6 @@ impl Plugin for GameCommonPlugin {
         app.insert_resource(
             Time::new_with(Physics::fixed_hz(PHYSICS_FIXED_TICK_RATE64))
         )
-        .insert_resource(SubstepCount(1))
         .add_plugins((
             PhysicsPlugins::new(FixedUpdate),
             NetworkCharacterControllerPlugin
