@@ -2,9 +2,17 @@
 // https://github.com/Jondolf/bevy_xpbd/tree/main/crates/bevy_xpbd_3d/examples/kinematic_character_3d
 // server have to operate multiple character controller
 
+use std::f32::{consts::PI, EPSILON};
 use bevy::prelude::*;
-use bevy_xpbd_3d::{prelude::*, SubstepSchedule, SubstepSet};
-use crate::{config::PHYSICS_SUBSTEP, instant_event_buffer::InstantEventBuffer};
+use bevy_xpbd_3d::{
+    prelude::*, 
+    SubstepSchedule, 
+    SubstepSet
+};
+use crate::{
+    config::PHYSICS_SUBSTEP, 
+    instant_event_buffer::InstantEventBuffer
+};
 
 pub struct CharacterControllerPlugin;
 
@@ -77,8 +85,8 @@ pub struct MovementBundle {
 
 const DEFAULT_ACCELERATION: Acceleration = Acceleration(60.0 * PHYSICS_SUBSTEP);
 const DEFAULT_DAMPING_FACTOR: DampingFactor = DampingFactor(0.98);
-const DEFAULT_JUMP_IMPULSE: JumpImpulse = JumpImpulse(7.0);
-const DEFAULT_MAX_SLOPE_ANGLE: MaxSlopeAngle = MaxSlopeAngle(bevy_xpbd_3d::math::PI * 0.45);
+const DEFAULT_JUMP_IMPULSE: JumpImpulse = JumpImpulse(9.0);
+const DEFAULT_MAX_SLOPE_ANGLE: MaxSlopeAngle = MaxSlopeAngle(PI * 0.45);
 
 impl Default for MovementBundle {
     fn default() -> Self {
@@ -222,7 +230,13 @@ fn apply_movement_damping_system(
 ) {
     for (damp, mut vel) in query.iter_mut() {
         vel.x *= damp.0;
+        if vel.x.abs() <= EPSILON {
+            vel.x = 0.0;
+        }
         vel.z *= damp.0;
+        if vel.z.abs() <= EPSILON {
+            vel.z = 0.0;
+        }
     }
 }
 

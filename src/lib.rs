@@ -28,7 +28,7 @@ pub const CHARACTER_ANGULAR_SPEED: f32 = 0.2;
 
 pub const GRAVITY: Vec3 = Vec3::new(
     0.0,
-    -9.81,
+    -9.81 * 2.0,
     0.0
 );
 
